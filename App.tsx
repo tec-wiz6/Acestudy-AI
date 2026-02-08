@@ -4,7 +4,8 @@ import { SetupForm } from './components/SetupForm';
 import { QuizPlayer } from './components/QuizPlayer';
 import { ResultsView } from './components/ResultsView';
 import { UserContext, QuizQuestion, QuizSession, StudyMaterial } from './types';
-import { generateQuizFromGemini } from './services/geminiService';
+import { generateQuiz } from './services/quizService';
+
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -20,7 +21,7 @@ const App: React.FC = () => {
     setError(null);
     setActiveContext(context);
     try {
-      const result = await generateQuizFromGemini(context);
+      const result = await generateQuiz(context);
       if (result.questions.length === 0) {
         throw new Error("No questions were generated. Please refine your inputs.");
       }
