@@ -25,7 +25,12 @@ Generate exactly ${context.questionCount} exam-standard MCQs.
 Context: ${detailString}
 ${novelContext}
 
-Return STRICTLY this JSON shape:
+IMPORTANT:
+- Respond with JSON ONLY, no backticks, no markdown, no explanation.
+- Do not include any text before or after the JSON.
+- Follow this structure exactly.
+
+Return this JSON object:
 {
   "questions": [
     {
@@ -52,12 +57,11 @@ Return STRICTLY this JSON shape:
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        // Optional but recommended:
         "HTTP-Referer": "https://acestudy-ai.vercel.app",
         "X-Title": "AceStudy Quiz Generator",
       },
       body: JSON.stringify({
-        model: "deepseek/deepseek-chat", // change if you use another model
+        model: "deepseek/deepseek-chat", // or another OpenRouter model you prefer
         messages: [
           {
             role: "user",
@@ -70,16 +74,26 @@ Return STRICTLY this JSON shape:
 
     if (!response.ok) {
       const text = await response.text();
-      console.error("OpenRouter error:", response.status, text);
-      return res.status(500).json({ error: "AI provider error" });
+      console.error("OpenRouter error raw:", response.status, text);
+      return res.status(500).json({ error: text });
     }
 
     const json = await response.json();
     const content: string = json.choices?.[0]?.message?.content || "{}";
 
+    function extractJson(text: string): any {
+      const firstBrace = text.indexOf("{");
+      const lastBrace = text.lastIndexOf("}");
+      if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
+        throw new Error("No JSON object found");
+      }
+      const jsonString = text.slice(firstBrace, lastBrace + 1);
+      return JSON.parse(jsonString);
+    }
+
     let data: any;
     try {
-      data = JSON.parse(content);
+      data = extractJson(content);
     } catch (e) {
       console.error("Failed to parse model JSON:", e, "content:", content);
       data = { questions: [], recommendations: [] };
@@ -87,7 +101,7 @@ Return STRICTLY this JSON shape:
 
     return res.status(200).json({
       questions: data.questions || [],
-      sources: [], // OpenRouter doesn't provide grounding metadata like Gemini
+      sources: [],
       recommendations: data.recommendations || [],
     });
   } catch (err) {
@@ -95,4 +109,3 @@ Return STRICTLY this JSON shape:
     return res.status(500).json({ error: "Failed to generate quiz" });
   }
 }
-
