@@ -46,40 +46,59 @@ Return this JSON object:
 }
 `;
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      console.error("OPENROUTER_API_KEY is not set");
-      return res.status(500).json({ error: "Server misconfigured: missing API key" });
+    async function callOpenRouter(): Promise<any> {
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
+
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://acestudy-ai.vercel.app",
+          "X-Title": "AceStudy Quiz Generator",
+        },
+        body: JSON.stringify({
+          model: "deepseek/deepseek-chat", // pick your OpenRouter model
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.5,
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`OpenRouter error ${response.status}: ${text}`);
+      }
+
+      const json = await response.json();
+      return json.choices?.[0]?.message?.content || "{}";
     }
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://acestudy-ai.vercel.app",
-        "X-Title": "AceStudy Quiz Generator",
-      },
-      body: JSON.stringify({
-        model: "deepseek/deepseek-chat", // or another OpenRouter model you prefer
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.5,
-      }),
-    });
+    async function callGroq(): Promise<any> {
+      const apiKey = process.env.GROQ_API_KEY;
+      if (!apiKey) throw new Error("GROQ_API_KEY missing");
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("OpenRouter error raw:", response.status, text);
-      return res.status(500).json({ error: text });
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant", // or another Groq model
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.5,
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Groq error ${response.status}: ${text}`);
+      }
+
+      const json = await response.json();
+      return json.choices?.[0]?.message?.content || "{}";
     }
-
-    const json = await response.json();
-    const content: string = json.choices?.[0]?.message?.content || "{}";
 
     function extractJson(text: string): any {
       const firstBrace = text.indexOf("{");
@@ -89,6 +108,16 @@ Return this JSON object:
       }
       const jsonString = text.slice(firstBrace, lastBrace + 1);
       return JSON.parse(jsonString);
+    }
+
+    let content: string;
+    try {
+      // Try OpenRouter first
+      content = await callOpenRouter();
+    } catch (e) {
+      console.error("OpenRouter failed, trying Groq:", e);
+      // Fallback to Groq
+      content = await callGroq();
     }
 
     let data: any;
