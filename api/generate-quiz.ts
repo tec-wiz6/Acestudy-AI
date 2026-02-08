@@ -1,7 +1,6 @@
 // api/generate-quiz.ts
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -44,7 +43,8 @@ Return STRICTLY this JSON shape:
 
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
-      throw new Error("OPENROUTER_API_KEY is not set");
+      console.error("OPENROUTER_API_KEY is not set");
+      return res.status(500).json({ error: "Server misconfigured: missing API key" });
     }
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -53,12 +53,11 @@ Return STRICTLY this JSON shape:
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
         // Optional but recommended:
-        "HTTP-Referer": "https://your-site-url.com",
-        "X-Title": "Quiz Generator",
+        "HTTP-Referer": "https://acestudy-ai.vercel.app",
+        "X-Title": "AceStudy Quiz Generator",
       },
       body: JSON.stringify({
-        // pick a free/cheap model, e.g. DeepSeek via OpenRouter:
-        model: "deepseek/deepseek-chat:free", // you can change this later
+        model: "deepseek/deepseek-chat:free", // change if you use another model
         messages: [
           {
             role: "user",
@@ -81,13 +80,14 @@ Return STRICTLY this JSON shape:
     let data: any;
     try {
       data = JSON.parse(content);
-    } catch {
+    } catch (e) {
+      console.error("Failed to parse model JSON:", e, "content:", content);
       data = { questions: [], recommendations: [] };
     }
 
     return res.status(200).json({
       questions: data.questions || [],
-      sources: [], // OpenRouter doesn't return Google grounding
+      sources: [], // OpenRouter doesn't provide grounding metadata like Gemini
       recommendations: data.recommendations || [],
     });
   } catch (err) {
