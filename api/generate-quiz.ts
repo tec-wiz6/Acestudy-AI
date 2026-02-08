@@ -57,7 +57,7 @@ Return STRICTLY this JSON shape:
         "X-Title": "AceStudy Quiz Generator",
       },
       body: JSON.stringify({
-        model: "deepseek/deepseek-chat:free", // change if you use another model
+        model: "deepseek/deepseek-chat", // change if you use another model
         messages: [
           {
             role: "user",
@@ -95,3 +95,4 @@ Return STRICTLY this JSON shape:
     return res.status(500).json({ error: "Failed to generate quiz" });
   }
 }
+
