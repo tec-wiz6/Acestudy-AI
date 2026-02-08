@@ -154,7 +154,7 @@ export const SetupForm: React.FC<SetupFormProps> = ({ onSubmit, isLoading }) => 
               onChange={(e) => setNovelTitle(e.target.value)}
               className={inputClasses} 
             />
-            <p className="text-[10px] text-indigo-600 font-medium italic">Gemini will pull specific analysis and past questions for this book.</p>
+            <p className="text-[10px] text-indigo-600 font-medium italic">The AI will pull specific analysis and past questions for this book.</p>
           </div>
         )}
       </div>
@@ -165,7 +165,7 @@ export const SetupForm: React.FC<SetupFormProps> = ({ onSubmit, isLoading }) => 
       </button>
 
       <p className="text-center text-[10px] text-slate-400 uppercase font-black tracking-widest">
-        Customized based on your university and level
+        Questions calibrated for your specific study experience
       </p>
     </form>
   );
